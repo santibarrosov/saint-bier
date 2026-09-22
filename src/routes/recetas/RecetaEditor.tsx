@@ -33,12 +33,15 @@ function recipeToFormValues(recipe: Recipe): RecipeFormValues {
     plannedFermentationDays: recipe.plannedFermentationDays,
     plannedConditioningDays: recipe.plannedConditioningDays,
     plannedCarbonationDays: recipe.plannedCarbonationDays,
+    boilTimeMin: recipe.boilTimeMin ?? 60,
     targetOg: recipe.targets.og,
     targetFg: recipe.targets.fg,
     targetAbv: recipe.targets.abv,
     targetIbu: recipe.targets.ibu,
     targetSrm: recipe.targets.srm,
     notes: recipe.notes ?? "",
+    publicTastingNote: recipe.publicTastingNote ?? "",
+    publicIngredientsNote: recipe.publicIngredientsNote ?? "",
     fermentables: recipe.fermentables.map((f) => ({ ...f })),
     hops: recipe.hops.map((h) => ({ ...h })),
     adjuncts: recipe.adjuncts.map((a) => ({ ...a })),
@@ -113,8 +116,11 @@ export function RecetaEditor() {
       plannedFermentationDays: values.plannedFermentationDays,
       plannedConditioningDays: values.plannedConditioningDays,
       plannedCarbonationDays: values.plannedCarbonationDays,
+      boilTimeMin: values.boilTimeMin,
       targets: { og: values.targetOg, fg: values.targetFg, abv: values.targetAbv, ibu: values.targetIbu, srm: values.targetSrm },
       notes: values.notes,
+      publicTastingNote: values.publicTastingNote,
+      publicIngredientsNote: values.publicIngredientsNote,
       fermentables: values.fermentables.map((f) => ({ ...f, id: crypto.randomUUID() })),
       hops: values.hops.map((h) => ({ ...h, id: crypto.randomUUID() })),
       adjuncts: values.adjuncts.map((a) => ({ ...a, id: crypto.randomUUID() })),
@@ -188,8 +194,8 @@ export function RecetaEditor() {
           </div>
         </SectionCard>
 
-        <SectionCard title="Tiempos planificados" description="Alimentan al planificador de producción.">
-          <div className="grid grid-cols-3 gap-4">
+        <SectionCard title="Tiempos planificados" description="Alimentan al planificador de producción y a Modo Cocción.">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <FormField label="Fermentación (días)">
               <Input type="number" {...form.register("plannedFermentationDays")} />
             </FormField>
@@ -199,7 +205,19 @@ export function RecetaEditor() {
             <FormField label="Carbonatación (días)">
               <Input type="number" {...form.register("plannedCarbonationDays")} />
             </FormField>
+            <FormField label="Hervor (minutos)">
+              <Input type="number" {...form.register("boilTimeMin")} />
+            </FormField>
           </div>
+        </SectionCard>
+
+        <SectionCard title="Portal público" description="Para la página que ve un invitado al escanear el QR del barril.">
+          <FormField label="A qué sabe (en criollo, no en grados Plato)">
+            <Textarea rows={2} placeholder="Ej: Amarga y cítrica, con final seco. Ideal bien fría." {...form.register("publicTastingNote")} />
+          </FormField>
+          <FormField label="Ingredientes (opcional)" hint="Si lo dejás vacío, se arma solo a partir de las maltas, lúpulos y adjuntos de la receta.">
+            <Textarea rows={2} placeholder="Se autogenera si lo dejás vacío" {...form.register("publicIngredientsNote")} />
+          </FormField>
         </SectionCard>
 
         <SectionCard

@@ -7,6 +7,7 @@ import type {
   InventoryTransaction,
   Keg,
   Recipe,
+  Review,
   YeastHarvest,
   YeastStrain,
 } from "./types"
@@ -21,6 +22,7 @@ export class SaintBierDB extends Dexie {
   kegs!: EntityTable<Keg, "id">
   events!: EntityTable<Event, "id">
   settings!: EntityTable<AppSettings, "id">
+  reviews!: EntityTable<Review, "id">
 
   constructor() {
     super("saint-bier")
@@ -36,10 +38,18 @@ export class SaintBierDB extends Dexie {
       events: "id, date, name",
       settings: "id",
     })
+
+    // v2: Modo Cocción (campos opcionales en recipes/batches, sin migrar índices) + reseñas del portal público
+    this.version(2).stores({
+      reviews: "id, batchId, style, createdAt",
+    })
   }
 }
 
 export const db = new SaintBierDB()
+
+export const DEFAULT_BRAND_STORY =
+  "Saint Bier nace en Medrano, hecha a mano por un enólogo que cambió el vino por la cerveza sin perderle el respeto al proceso. Cada lote es chico, pensado y cocinado de a uno — nada de líneas de producción."
 
 export const DEFAULT_SETTINGS: AppSettings = {
   id: "settings",
@@ -52,6 +62,10 @@ export const DEFAULT_SETTINGS: AppSettings = {
   kegAmortizationPerLiter: 20,
   targetMarginPct: 40,
   fermenterCount: 1,
+  publicPortalBaseUrl: "",
+  whatsappPhone: "",
+  instagramHandle: "",
+  brandStory: DEFAULT_BRAND_STORY,
 }
 
 /**

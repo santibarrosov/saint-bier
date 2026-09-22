@@ -72,6 +72,12 @@ export interface Recipe extends BaseEntity {
   plannedFermentationDays: number
   plannedConditioningDays: number
   plannedCarbonationDays: number
+  /** duración total del hervor en minutos, usada por Modo Cocción para ubicar cada adición de lúpulo */
+  boilTimeMin?: number
+  /** para el portal público: a qué sabe, en criollo */
+  publicTastingNote?: string
+  /** para el portal público: override manual de la lista de ingredientes; si falta, se autogenera */
+  publicIngredientsNote?: string
   notes?: string
   archived?: boolean
 }
@@ -107,6 +113,62 @@ export interface BatchCostOverrides {
   sanitizerCost?: number
   laborHours?: number
   otherCost?: number
+}
+
+// ---------- Modo Cocción ----------
+
+export type BrewStepKey =
+  | "heat_water"
+  | "mash"
+  | "recirculate"
+  | "mash_out"
+  | "sparge"
+  | "boil"
+  | "whirlpool"
+  | "chill"
+  | "pitch"
+
+export type BrewStepStatus = "pending" | "active" | "done"
+
+export interface BrewStepCapture {
+  id: Id
+  label: string
+  value: string
+  unit?: string
+  at: string // ISO timestamp real, no relativo
+}
+
+export interface BrewStep {
+  id: Id
+  key: BrewStepKey
+  label: string
+  status: BrewStepStatus
+  /** ISO absoluto — el resto del tiempo se recalcula siempre desde acá, nunca desde un contador en memoria */
+  startedAt?: string
+  plannedDurationSec?: number
+  completedAt?: string
+  note?: string
+  captures: BrewStepCapture[]
+}
+
+export interface BoilAlarm {
+  id: Id
+  label: string
+  /** minutos restantes de hervor en los que corresponde esta adición */
+  minutesRemaining: number
+  /** ya sonó el aviso de 2 minutos antes */
+  warned: boolean
+  /** ya sonó la alarma en el momento exacto */
+  triggered: boolean
+}
+
+export interface BrewSession {
+  active: boolean
+  currentStepIndex: number
+  steps: BrewStep[]
+  /** ISO absoluto de cuándo arrancó el hervor — ancla de todas las alarmas encadenadas */
+  boilStartedAt?: string
+  boilAlarms: BoilAlarm[]
 }
 
 export interface Batch extends BaseEntity {
@@ -146,6 +208,8 @@ export interface Batch extends BaseEntity {
 
   /** true una vez que se descontó el stock de inventario para esta cocción */
   stockDeducted?: boolean
+
+  brewSession?: BrewSession
 }
 
 // ---------- Levaduras ----------
@@ -263,6 +327,19 @@ export interface Event extends BaseEntity {
   notes?: string
 }
 
+// ---------- Reseñas (portal público, cargadas a mano) ----------
+
+export type ReviewSource = "whatsapp" | "manual"
+
+export interface Review extends BaseEntity {
+  batchId: Id
+  batchCode: string
+  style: string
+  rating: number // 1-5
+  comment?: string
+  source: ReviewSource
+}
+
 // ---------- Configuración ----------
 
 export interface AppSettings {
@@ -276,4 +353,10 @@ export interface AppSettings {
   kegAmortizationPerLiter: number
   targetMarginPct: number
   fermenterCount: number
+  /** base URL donde se sube el HTML del portal público, ej. https://usuario.github.io/saintbier/b */
+  publicPortalBaseUrl?: string
+  /** número de WhatsApp del operario en formato E.164 sin "+", para los links wa.me */
+  whatsappPhone?: string
+  instagramHandle?: string
+  brandStory?: string
 }

@@ -1,5 +1,5 @@
 import { useLiveQuery } from "dexie-react-hooks"
-import { db } from "./db"
+import { db, DEFAULT_BRAND_STORY } from "./db"
 import type { AppSettings } from "./types"
 
 export function useRecipes() {
@@ -73,6 +73,17 @@ export function useEvent(id: string | undefined) {
   return useLiveQuery(() => (id ? db.events.get(id) : undefined), [id])
 }
 
+export function useReviews() {
+  return useLiveQuery(() => db.reviews.orderBy("createdAt").reverse().toArray(), [], [])
+}
+
+export function useReviewsByBatch(batchId: string | undefined) {
+  return useLiveQuery(async () => {
+    if (!batchId) return []
+    return db.reviews.where("batchId").equals(batchId).reverse().sortBy("createdAt")
+  }, [batchId], [])
+}
+
 const SETTINGS_FALLBACK: AppSettings = {
   id: "settings",
   hourlyRate: 0,
@@ -84,6 +95,10 @@ const SETTINGS_FALLBACK: AppSettings = {
   kegAmortizationPerLiter: 0,
   targetMarginPct: 40,
   fermenterCount: 1,
+  publicPortalBaseUrl: "",
+  whatsappPhone: "",
+  instagramHandle: "",
+  brandStory: DEFAULT_BRAND_STORY,
 }
 
 export function useSettings(): AppSettings {

@@ -1,5 +1,5 @@
 import { db } from "../db"
-import type { Batch } from "../types"
+import type { Batch, BrewSession } from "../types"
 import { newId, nowIso } from "@/lib/id"
 import { inventoryRepo } from "./inventoryRepo"
 
@@ -44,19 +44,45 @@ export const batchRepo = {
   },
 
   async addFermentationLog(id: string, entry: { date: string; tempC: number; note?: string }): Promise<void> {
-    const batch = await db.batches.get(id)
-    if (!batch) return
-    const logs = [...batch.fermentationLogs, { id: newId(), ...entry }].sort((a, b) =>
-      a.date.localeCompare(b.date),
-    )
-    await db.batches.update(id, { fermentationLogs: logs, updatedAt: nowIso() })
+    await db.transaction("rw", db.batches, async () => {
+      const batch = await db.batches.get(id)
+      if (!batch) return
+      const logs = [...batch.fermentationLogs, { id: newId(), ...entry }].sort((a, b) => a.date.localeCompare(b.date))
+      await db.batches.update(id, { fermentationLogs: logs, updatedAt: nowIso() })
+    })
   },
 
   async removeFermentationLog(id: string, logId: string): Promise<void> {
-    const batch = await db.batches.get(id)
-    if (!batch) return
-    const logs = batch.fermentationLogs.filter((l) => l.id !== logId)
-    await db.batches.update(id, { fermentationLogs: logs, updatedAt: nowIso() })
+    await db.transaction("rw", db.batches, async () => {
+      const batch = await db.batches.get(id)
+      if (!batch) return
+      const logs = batch.fermentationLogs.filter((l) => l.id !== logId)
+      await db.batches.update(id, { fermentationLogs: logs, updatedAt: nowIso() })
+    })
+  },
+
+  /**
+   * Aplica `updater` sobre la sesión de Modo Cocción leyéndola fresca desde Dexie dentro
+   * de una transacción — nunca sobre un `brewSession` capturado en un closure de React.
+   * Evita que dos capturas guardadas casi al mismo tiempo (ej. temp + pH del mismo click)
+   * se pisen entre sí, porque cada una calcularía el "próximo estado" a partir del mismo
+   * valor viejo y la segunda escritura borraría la primera.
+   */
+  async updateBrewSession(id: string, updater: (session: BrewSession) => BrewSession): Promise<void> {
+    await db.transaction("rw", db.batches, async () => {
+      const batch = await db.batches.get(id)
+      if (!batch?.brewSession) return
+      await db.batches.update(id, { brewSession: updater(batch.brewSession), updatedAt: nowIso() })
+    })
+  },
+
+  /** Crea la sesión de Modo Cocción solo si todavía no existe (a prueba de doble-invocación de efectos). */
+  async initBrewSessionIfMissing(id: string, build: () => BrewSession): Promise<void> {
+    await db.transaction("rw", db.batches, async () => {
+      const batch = await db.batches.get(id)
+      if (!batch || batch.brewSession) return
+      await db.batches.update(id, { brewSession: build(), updatedAt: nowIso() })
+    })
   },
 
   /** Cocciones cuyo fermentador sigue ocupado (no envasadas/finalizadas todavía). */

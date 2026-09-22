@@ -11,6 +11,7 @@ const RecetaDetail = lazy(() => import("@/routes/recetas/RecetaDetail").then((m)
 const CoccionesList = lazy(() => import("@/routes/cocciones/CoccionesList").then((m) => ({ default: m.CoccionesList })))
 const CoccionForm = lazy(() => import("@/routes/cocciones/CoccionForm").then((m) => ({ default: m.CoccionForm })))
 const CoccionDetail = lazy(() => import("@/routes/cocciones/CoccionDetail").then((m) => ({ default: m.CoccionDetail })))
+const ModoCoccion = lazy(() => import("@/routes/cocciones/ModoCoccion").then((m) => ({ default: m.ModoCoccion })))
 const LevadurasPage = lazy(() => import("@/routes/levaduras/LevadurasPage").then((m) => ({ default: m.LevadurasPage })))
 const InventarioPage = lazy(() => import("@/routes/inventario/InventarioPage").then((m) => ({ default: m.InventarioPage })))
 const BarrilesPage = lazy(() => import("@/routes/barriles/BarrilesPage").then((m) => ({ default: m.BarrilesPage })))
@@ -37,6 +38,8 @@ export default function App() {
       <BrowserRouter>
         <Suspense fallback={<RouteFallback />}>
           <Routes>
+            <Route path="cocciones/:id/modo-coccion" element={<ModoCoccion />} />
+
             <Route element={<AppShell />}>
               <Route index element={<Dashboard />} />
 

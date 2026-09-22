@@ -6,6 +6,7 @@ import { SectionCard } from "@/components/shared/SectionCard"
 import { FormField } from "@/components/shared/FormField"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/toast"
 
 import { useSettings } from "@/data/hooks"
@@ -71,6 +72,24 @@ export function AjustesPage() {
       <SectionCard title="Eventos">
         <FormField label="Litros por adulto">
           <Input type="number" step="0.05" {...form.register("litersPerAdult", { valueAsNumber: true })} />
+        </FormField>
+      </SectionCard>
+
+      <SectionCard title="Portal público" description="Usado para generar el QR de cada barril y sus links de contacto.">
+        <FormField
+          label="URL base donde subís las páginas"
+          hint="Ej: https://tuusuario.github.io/saintbier/b — se le agrega /CODIGO-DE-LOTE.html"
+        >
+          <Input placeholder="https://..." {...form.register("publicPortalBaseUrl")} />
+        </FormField>
+        <FormField label="WhatsApp del operario" hint="Formato internacional sin +, ej: 5491122334455">
+          <Input placeholder="5491122334455" {...form.register("whatsappPhone")} />
+        </FormField>
+        <FormField label="Instagram">
+          <Input placeholder="saintbier" {...form.register("instagramHandle")} />
+        </FormField>
+        <FormField label="Historia de la marca">
+          <Textarea rows={3} {...form.register("brandStory")} />
         </FormField>
       </SectionCard>
 

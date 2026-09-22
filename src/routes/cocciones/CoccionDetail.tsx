@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react"
-import { useNavigate, useParams } from "react-router-dom"
+import { Link, useNavigate, useParams } from "react-router-dom"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { Download, ImagePlus, Plus, Trash2 } from "lucide-react"
+import { Copy, Download, ImagePlus, Plus, Printer, QrCode, Timer, Trash2 } from "lucide-react"
 
 import { PageHeader } from "@/components/layout/PageHeader"
 import { SectionCard } from "@/components/shared/SectionCard"
@@ -16,12 +16,16 @@ import { ConfirmDialog } from "@/components/shared/ConfirmDialog"
 import { useToast } from "@/components/ui/toast"
 import { FermentationChart } from "@/components/charts/FermentationChart"
 
-import { useBatch } from "@/data/hooks"
+import { useBatch, useRecipe, useSettings } from "@/data/hooks"
 import { batchRepo } from "@/data/repositories/batchRepo"
 import { calcABV, calcAttenuation, calcMeasuredEfficiency } from "@/lib/brewCalc"
 import { BATCH_STATUS_LABELS, BATCH_STATUS_ORDER } from "@/lib/constants"
 import { formatDate, formatGravity, formatPercent, todayIso } from "@/lib/format"
 import { downloadBrewSheetPdf } from "@/lib/pdf/brewSheetPdf"
+import { generateQrDataUrl } from "@/lib/qr"
+import { buildPublicBatchPage, publicBatchUrl } from "@/lib/publicPage"
+import { primeAudio } from "@/lib/alarm"
+import type { Batch, Recipe, AppSettings } from "@/data/types"
 
 const coreSchema = z.object({
   status: z.enum(["planificada", "cociendo", "fermentando", "madurando", "carbonatando", "envasada", "finalizada"]),
@@ -45,6 +49,8 @@ type CoreValues = z.infer<typeof coreSchema>
 export function CoccionDetail() {
   const { id } = useParams<{ id: string }>()
   const batch = useBatch(id)
+  const recipe = useRecipe(batch?.recipeId)
+  const settings = useSettings()
   const navigate = useNavigate()
   const { toast } = useToast()
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -165,6 +171,14 @@ export function CoccionDetail() {
           </>
         }
       />
+
+      {(batch.status === "planificada" || batch.status === "cociendo") && (
+        <Button asChild size="lg" className="h-16 w-full text-lg">
+          <Link to={`/cocciones/${batch.id}/modo-coccion`} onClick={() => primeAudio()}>
+            <Timer className="h-5 w-5" /> {batch.brewSession?.active ? "Reanudar Modo Cocción" : "Modo Cocción"}
+          </Link>
+        </Button>
+      )}
 
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
         <StatBox label="DO" value={batch.og ? formatGravity(batch.og) : "—"} />
@@ -314,6 +328,8 @@ export function CoccionDetail() {
         )}
       </SectionCard>
 
+      {recipe && <PublicPortalSection batch={batch} recipe={recipe} settings={settings} />}
+
       <ConfirmDialog
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
@@ -337,5 +353,82 @@ function StatBox({ label, value }: { label: string; value: string }) {
       <p className="font-display text-base font-semibold text-[var(--color-text)]">{value}</p>
       <p className="text-[10px] uppercase tracking-wide text-[var(--color-text-faint)]">{label}</p>
     </div>
+  )
+}
+
+function PublicPortalSection({ batch, recipe, settings }: { batch: Batch; recipe: Recipe; settings: AppSettings }) {
+  const { toast } = useToast()
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
+  const baseUrl = settings.publicPortalBaseUrl?.trim()
+  const url = baseUrl ? publicBatchUrl(baseUrl, batch.code) : null
+
+  useEffect(() => {
+    if (!url) {
+      setQrDataUrl(null)
+      return
+    }
+    let cancelled = false
+    generateQrDataUrl(url).then((dataUrl) => {
+      if (!cancelled) setQrDataUrl(dataUrl)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [url])
+
+  if (!baseUrl) {
+    return (
+      <SectionCard title="Portal público">
+        <p className="text-sm text-[var(--color-text-muted)]">
+          Configurá la URL del portal en{" "}
+          <Link to="/ajustes" className="text-[var(--color-primary)] underline">
+            Ajustes
+          </Link>{" "}
+          para poder generar la página y el QR de este lote.
+        </p>
+      </SectionCard>
+    )
+  }
+
+  const downloadHtml = () => {
+    const html = buildPublicBatchPage({ batch, recipe, settings })
+    const blob = new Blob([html], { type: "text/html" })
+    const a = document.createElement("a")
+    a.href = URL.createObjectURL(blob)
+    a.download = `${batch.code}.html`
+    a.click()
+    // revocar recién después: hacerlo en el mismo tick puede cortar la descarga a mitad de camino
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000)
+    toast({ title: "Página descargada", description: `Subila a tu hosting para que quede en ${url}` })
+  }
+
+  const printLabels = async () => {
+    const { downloadLabelSheetPdf } = await import("@/lib/pdf/labelSheetPdf")
+    await downloadLabelSheetPdf({ batch, recipe, publicPortalBaseUrl: baseUrl })
+  }
+
+  const copyUrl = async () => {
+    if (!url) return
+    await navigator.clipboard.writeText(url)
+    toast({ title: "URL copiada" })
+  }
+
+  return (
+    <SectionCard title="Portal público" description="La ficha que ve un invitado al escanear el QR del barril.">
+      <div className="flex flex-col items-center gap-3">
+        {qrDataUrl && <img src={qrDataUrl} alt="QR del portal público" className="h-40 w-40 rounded-[var(--radius-md)] bg-white p-2" />}
+        <button type="button" onClick={copyUrl} className="flex items-center gap-1.5 text-xs text-[var(--color-text-faint)]">
+          <Copy className="h-3.5 w-3.5" /> {url}
+        </button>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <Button variant="secondary" onClick={downloadHtml}>
+          <QrCode className="h-4 w-4" /> Descargar página
+        </Button>
+        <Button variant="secondary" onClick={printLabels}>
+          <Printer className="h-4 w-4" /> Imprimir etiquetas
+        </Button>
+      </div>
+    </SectionCard>
   )
 }
