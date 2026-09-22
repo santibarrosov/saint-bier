@@ -35,7 +35,7 @@ function RouteFallback() {
 export default function App() {
   return (
     <ToastProvider>
-      <BrowserRouter>
+      <BrowserRouter basename={import.meta.env.BASE_URL}>
         <Suspense fallback={<RouteFallback />}>
           <Routes>
             <Route path="cocciones/:id/modo-coccion" element={<ModoCoccion />} />

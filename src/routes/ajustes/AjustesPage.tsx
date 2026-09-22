@@ -12,6 +12,7 @@ import { useToast } from "@/components/ui/toast"
 import { useSettings } from "@/data/hooks"
 import { settingsRepo } from "@/data/repositories/settingsRepo"
 import type { AppSettings } from "@/data/types"
+import { InstallButton } from "@/components/shared/InstallPrompt"
 
 type FormValues = Omit<AppSettings, "id">
 
@@ -34,6 +35,10 @@ export function AjustesPage() {
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5 pb-6">
       <PageHeader title="Ajustes" description="Los valores por defecto que usan las calculadoras." />
+
+      <SectionCard title="Instalar app" description="Para tenerla en la pantalla de inicio y que funcione sin conexión.">
+        <InstallButton />
+      </SectionCard>
 
       <SectionCard title="Costos por defecto">
         <div className="grid grid-cols-2 gap-4">
