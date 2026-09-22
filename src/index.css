@@ -1,0 +1,149 @@
+@import "tailwindcss";
+
+/* Inter — UI / body (subset "latin" cubre español: á é í ó ú ñ ü ¿ ¡) */
+@import "@fontsource/inter/latin-400.css";
+@import "@fontsource/inter/latin-500.css";
+@import "@fontsource/inter/latin-600.css";
+@import "@fontsource/inter/latin-700.css";
+
+/* Fraunces — wordmark, headers, display numbers */
+@import "@fontsource/fraunces/latin-400.css";
+@import "@fontsource/fraunces/latin-500.css";
+@import "@fontsource/fraunces/latin-600.css";
+@import "@fontsource/fraunces/latin-700.css";
+@import "@fontsource/fraunces/latin-900.css";
+@import "@fontsource/fraunces/latin-600-italic.css";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
+
+  /* Surfaces */
+  --color-bg: #15110d;
+  --color-bg-raised: #1c1610;
+  --color-bg-elevated: #241c14;
+  --color-bg-overlay: #2c2219;
+  --color-bg-sunken: #0e0b08;
+
+  /* Borders */
+  --color-border: #382c1f;
+  --color-border-strong: #4d3d29;
+  --color-border-hairline: #29211a;
+
+  /* Text */
+  --color-text: #f5eee2;
+  --color-text-muted: #b9a992;
+  --color-text-faint: #7f7161;
+  --color-text-on-primary: #1a1209;
+
+  /* Brand amber */
+  --color-primary: #e0a83a;
+  --color-primary-hover: #ecb84e;
+  --color-primary-active: #c48a28;
+  --color-primary-soft: #3a2c15;
+
+  /* Secondary / copper */
+  --color-copper: #b3502e;
+  --color-copper-soft: #38201a;
+
+  /* Status */
+  --color-success: #7c9a52;
+  --color-success-soft: #232a19;
+  --color-warning: #cc7a2e;
+  --color-warning-soft: #33220f;
+  --color-danger: #c1452e;
+  --color-danger-soft: #33170f;
+  --color-info: #6e8fa6;
+  --color-info-soft: #1b262c;
+  --color-violet: #8d6fa6;
+  --color-violet-soft: #251c2c;
+
+  /* Keg-state specific */
+  --color-keg-dirty: #8a5a44;
+  --color-keg-clean: #6e8fa6;
+  --color-keg-full: #e0a83a;
+  --color-keg-carb: #cc7a2e;
+  --color-keg-ready: #7c9a52;
+  --color-keg-event: #8d6fa6;
+  --color-keg-return: #a68a5e;
+
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1.125rem;
+  --radius-xl: 1.5rem;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.55);
+}
+
+:root {
+  color-scheme: dark;
+}
+
+* {
+  border-color: var(--color-border);
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+
+::selection {
+  background-color: var(--color-primary);
+  color: var(--color-text-on-primary);
+}
+
+/* Warm, subtle scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-strong) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: var(--color-border-strong);
+  border-radius: 999px;
+}
+
+/* Faint malted-grain background texture on the app shell */
+.grain-bg {
+  background-image:
+    radial-gradient(circle at 15% 10%, rgba(224, 168, 58, 0.06), transparent 45%),
+    radial-gradient(circle at 85% 0%, rgba(179, 80, 46, 0.05), transparent 40%);
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+/* Radix overlay/content animations, driven by data-state (no plugin dependency) */
+@keyframes ui-overlay-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ui-overlay-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes ui-pop-in { from { opacity: 0; transform: translate(-50%, -50%) scale(0.96); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+@keyframes ui-pop-out { from { opacity: 1; transform: translate(-50%, -50%) scale(1); } to { opacity: 0; transform: translate(-50%, -50%) scale(0.96); } }
+@keyframes ui-slide-in-right { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes ui-slide-out-right { from { transform: translateX(0); } to { transform: translateX(100%); } }
+@keyframes ui-slide-in-bottom { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes ui-slide-out-bottom { from { transform: translateY(0); } to { transform: translateY(100%); } }
+
+.ui-overlay[data-state="open"] { animation: ui-overlay-in 180ms ease-out; }
+.ui-overlay[data-state="closed"] { animation: ui-overlay-out 150ms ease-in; }
+.ui-pop[data-state="open"] { animation: ui-pop-in 180ms cubic-bezier(0.16, 1, 0.3, 1); }
+.ui-pop[data-state="closed"] { animation: ui-pop-out 120ms ease-in; }
+.ui-sheet-right[data-state="open"] { animation: ui-slide-in-right 220ms cubic-bezier(0.16, 1, 0.3, 1); }
+.ui-sheet-right[data-state="closed"] { animation: ui-slide-out-right 180ms ease-in; }
+.ui-sheet-bottom[data-state="open"] { animation: ui-slide-in-bottom 220ms cubic-bezier(0.16, 1, 0.3, 1); }
+.ui-sheet-bottom[data-state="closed"] { animation: ui-slide-out-bottom 180ms ease-in; }
