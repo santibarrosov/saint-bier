@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog"
 import { useToast } from "@/components/ui/toast"
 import { FermentationChart } from "@/components/charts/FermentationChart"
+import { GravityChart } from "@/components/charts/GravityChart"
 
 import { useBatch, useRecipe, useSettings } from "@/data/hooks"
 import { batchRepo } from "@/data/repositories/batchRepo"
@@ -80,6 +81,7 @@ export function CoccionDetail() {
 
   const [logDate, setLogDate] = useState(todayIso())
   const [logTemp, setLogTemp] = useState("")
+  const [logGravity, setLogGravity] = useState("")
   const [logNote, setLogNote] = useState("")
 
   const [stepName, setStepName] = useState("")
@@ -127,10 +129,21 @@ export function CoccionDetail() {
 
   const addLog = async () => {
     if (!logTemp) return
-    await batchRepo.addFermentationLog(batch.id, { date: logDate, tempC: Number(logTemp), note: logNote || undefined })
+    await batchRepo.addFermentationLog(batch.id, {
+      date: logDate,
+      tempC: Number(logTemp),
+      gravity: logGravity ? Number(logGravity) : undefined,
+      note: logNote || undefined,
+    })
     setLogTemp("")
+    setLogGravity("")
     setLogNote("")
   }
+
+  const latestGravityReading = [...batch.fermentationLogs]
+    .filter((l) => l.gravity != null)
+    .sort((a, b) => b.date.localeCompare(a.date))[0]
+  const currentAttenuation = batch.og && latestGravityReading?.gravity ? calcAttenuation(batch.og, latestGravityReading.gravity) : undefined
 
   const addStep = async () => {
     if (!stepName || !stepTemp) return
@@ -296,16 +309,28 @@ export function CoccionDetail() {
         </Button>
       </SectionCard>
 
-      <SectionCard title="Temperaturas de fermentación">
+      <SectionCard title="Fermentación" description="Temperatura y densidad — registrá la densidad cada tanto para ver cuándo se estabiliza.">
+        {currentAttenuation != null && (
+          <div className="rounded-[var(--radius-md)] bg-[var(--color-info-soft)] px-3 py-2.5 text-center">
+            <p className="text-sm text-[var(--color-info)]">
+              Atenuación actual: <span className="font-semibold">{formatPercent(currentAttenuation, 0)}</span>
+              <span className="ml-1 text-xs opacity-80">(última DO: {formatGravity(latestGravityReading!.gravity!)})</span>
+            </p>
+          </div>
+        )}
+
         {batch.fermentationLogs.length > 0 ? (
           <FermentationChart logs={batch.fermentationLogs} />
         ) : (
           <p className="text-sm text-[var(--color-text-faint)]">Todavía no hay registros.</p>
         )}
-        <div className="grid grid-cols-4 gap-2">
+        <GravityChart logs={batch.fermentationLogs} />
+
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <Input type="date" value={logDate} onChange={(e) => setLogDate(e.target.value)} />
           <Input placeholder="°C" type="number" step="0.1" value={logTemp} onChange={(e) => setLogTemp(e.target.value)} />
-          <Input placeholder="Nota" className="col-span-2" value={logNote} onChange={(e) => setLogNote(e.target.value)} />
+          <Input placeholder="DO (opcional)" type="number" step="0.001" value={logGravity} onChange={(e) => setLogGravity(e.target.value)} />
+          <Input placeholder="Nota" value={logNote} onChange={(e) => setLogNote(e.target.value)} />
         </div>
         <Button type="button" variant="secondary" onClick={addLog}>
           <Plus className="h-4 w-4" /> Agregar registro
@@ -317,7 +342,7 @@ export function CoccionDetail() {
               .map((l) => (
                 <div key={l.id} className="flex items-center justify-between text-xs text-[var(--color-text-muted)]">
                   <span>
-                    {formatDate(l.date)} — {l.tempC}°C {l.note && `· ${l.note}`}
+                    {formatDate(l.date)} — {l.tempC}°C {l.gravity != null && `· ${formatGravity(l.gravity)}`} {l.note && `· ${l.note}`}
                   </span>
                   <button type="button" onClick={() => batchRepo.removeFermentationLog(batch.id, l.id)}>
                     <Trash2 className="h-3.5 w-3.5 text-[var(--color-danger)]" />

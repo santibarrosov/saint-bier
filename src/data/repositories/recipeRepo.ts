@@ -31,4 +31,27 @@ export const recipeRepo = {
   async remove(id: string): Promise<void> {
     await db.recipes.delete(id)
   },
+
+  /** Copia la receta con nombre "(copia)" e ids frescos en los ingredientes, para iterar sin tocar el original. */
+  async duplicate(recipe: Recipe): Promise<Recipe> {
+    return recipeRepo.create({
+      name: `${recipe.name} (copia)`,
+      style: recipe.style,
+      targetVolumeL: recipe.targetVolumeL,
+      efficiencyPct: recipe.efficiencyPct,
+      targets: { ...recipe.targets },
+      fermentables: recipe.fermentables.map((f) => ({ ...f, id: newId() })),
+      hops: recipe.hops.map((h) => ({ ...h, id: newId() })),
+      adjuncts: recipe.adjuncts.map((a) => ({ ...a, id: newId() })),
+      yeastStrainId: recipe.yeastStrainId,
+      plannedFermentationDays: recipe.plannedFermentationDays,
+      plannedConditioningDays: recipe.plannedConditioningDays,
+      plannedCarbonationDays: recipe.plannedCarbonationDays,
+      boilTimeMin: recipe.boilTimeMin,
+      publicTastingNote: recipe.publicTastingNote,
+      publicIngredientsNote: recipe.publicIngredientsNote,
+      notes: recipe.notes,
+      archived: false,
+    })
+  },
 }

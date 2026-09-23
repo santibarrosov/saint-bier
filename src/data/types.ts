@@ -105,6 +105,8 @@ export interface FermentationLogEntry {
   id: Id
   date: string // ISO date
   tempC: number
+  /** densidad específica medida ese día (ej. 1.012) — opcional, no siempre se mide */
+  gravity?: number
   note?: string
 }
 
@@ -292,6 +294,13 @@ export interface KegLocationEntry {
 export const KEG_CAPACITY_OPTIONS_L = [5, 10, 20, 30, 50, 70] as const
 export type KegCapacityL = (typeof KEG_CAPACITY_OPTIONS_L)[number]
 
+export interface KegHistoryEntry {
+  id: Id
+  batchId: Id
+  batchCode: string
+  filledDate: string
+}
+
 export interface Keg extends BaseEntity {
   physicalLabel: string
   capacityL: KegCapacityL
@@ -303,6 +312,9 @@ export interface Keg extends BaseEntity {
   location: string
   locationSince: string
   notes?: string
+  /** qué lotes pasaron por este barril, más reciente primero. Opcional: los barriles creados antes de esta
+   *  feature no lo tienen — tratarlo siempre como `keg.history ?? []`. */
+  history?: KegHistoryEntry[]
 }
 
 // ---------- Eventos ----------

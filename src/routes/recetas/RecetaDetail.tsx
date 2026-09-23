@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
-import { Beer, Pencil, Trash2 } from "lucide-react"
+import { Beer, Copy, Pencil, Trash2 } from "lucide-react"
 
 import { PageHeader } from "@/components/layout/PageHeader"
 import { SectionCard } from "@/components/shared/SectionCard"
@@ -48,6 +48,12 @@ export function RecetaDetail() {
     navigate("/cocciones/nueva", { state: { recipeId: recipe.id, volumeL: volume, efficiencyPct: efficiency } })
   }
 
+  const duplicate = async () => {
+    const copy = await recipeRepo.duplicate(recipe)
+    toast({ title: "Receta duplicada", variant: "success" })
+    navigate(`/recetas/${copy.id}/editar`)
+  }
+
   return (
     <div className="space-y-5 pb-6">
       <PageHeader
@@ -56,6 +62,9 @@ export function RecetaDetail() {
         back
         actions={
           <>
+            <Button variant="secondary" size="icon" onClick={duplicate} title="Duplicar receta">
+              <Copy className="h-4 w-4" />
+            </Button>
             <Button variant="secondary" size="icon" asChild>
               <Link to={`/recetas/${recipe.id}/editar`}>
                 <Pencil className="h-4 w-4" />

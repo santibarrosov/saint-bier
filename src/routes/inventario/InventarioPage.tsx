@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { AlertTriangle, Package, Pencil, Plus, Warehouse } from "lucide-react"
+import { AlertTriangle, Copy, Package, Pencil, Plus, Warehouse } from "lucide-react"
 
 import { PageHeader } from "@/components/layout/PageHeader"
 import { SectionCard } from "@/components/shared/SectionCard"
@@ -16,9 +16,25 @@ import { useInventoryItems } from "@/data/hooks"
 import { inventoryRepo } from "@/data/repositories/inventoryRepo"
 import type { InventoryCategory, InventoryItem } from "@/data/types"
 import { INVENTORY_CATEGORY_LABELS } from "@/lib/constants"
-import { formatCurrency } from "@/lib/format"
+import { formatCurrency, formatDate, todayIso } from "@/lib/format"
 
 const CATEGORIES: InventoryCategory[] = ["malta", "lupulo", "adjunto", "otro"]
+
+function buildShoppingListMessage(lowStock: InventoryItem[]): string {
+  const lines = [`🛒 *Lista de compras Saint Bier*`, ``]
+  for (const cat of CATEGORIES) {
+    const catItems = lowStock.filter((i) => i.category === cat)
+    if (catItems.length === 0) continue
+    lines.push(`*${INVENTORY_CATEGORY_LABELS[cat]}*`)
+    for (const i of catItems) {
+      const faltante = Math.max(0, i.minStockQty - i.stockQty)
+      lines.push(`• ${i.name} — faltan ${faltante} ${i.unit} (tenés ${i.stockQty}, mínimo ${i.minStockQty})`)
+    }
+    lines.push(``)
+  }
+  lines.push(`Generado el ${formatDate(todayIso())}`)
+  return lines.join("\n")
+}
 
 interface ItemFormState {
   category: InventoryCategory
@@ -97,6 +113,16 @@ export function InventarioPage() {
     setMoveOpen(false)
   }
 
+  const copyShoppingList = async () => {
+    const text = buildShoppingListMessage(lowStock)
+    try {
+      await navigator.clipboard.writeText(text)
+      toast({ title: "Lista copiada", description: "Pegala directo en WhatsApp", variant: "success" })
+    } catch {
+      toast({ title: "No se pudo copiar", description: "Copiala a mano desde acá", variant: "warning" })
+    }
+  }
+
   return (
     <div className="space-y-5 pb-6">
       <PageHeader
@@ -110,7 +136,15 @@ export function InventarioPage() {
       />
 
       {lowStock.length > 0 && (
-        <SectionCard title="Lista de compras" description="Insumos en o por debajo del stock mínimo.">
+        <SectionCard
+          title="Lista de compras"
+          description="Insumos en o por debajo del stock mínimo."
+          actions={
+            <Button size="sm" variant="secondary" onClick={copyShoppingList}>
+              <Copy className="h-4 w-4" /> Copiar
+            </Button>
+          }
+        >
           <div className="space-y-2">
             {lowStock.map((i) => (
               <div key={i.id} className="flex items-center justify-between rounded-[var(--radius-sm)] bg-[var(--color-warning-soft)] px-3 py-2">

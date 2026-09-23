@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { ArrowRight, Barrel, MapPin, Plus, Settings2 } from "lucide-react"
+import { ArrowRight, Barrel, History, MapPin, Plus, Settings2 } from "lucide-react"
 
 import { PageHeader } from "@/components/layout/PageHeader"
 import { FormField } from "@/components/shared/FormField"
@@ -12,11 +12,11 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { useToast } from "@/components/ui/toast"
 
-import { useKegs } from "@/data/hooks"
+import { useBatches, useKegs } from "@/data/hooks"
 import { kegRepo } from "@/data/repositories/kegRepo"
 import { KEG_CAPACITY_OPTIONS_L, KEG_STATUS_ORDER, type Keg, type KegCapacityL, type KegStatus } from "@/data/types"
 import { KEG_NEXT_STATUS, KEG_STATUS_LABELS } from "@/lib/constants"
-import { formatDateShort } from "@/lib/format"
+import { formatDate, formatDateShort, todayIso } from "@/lib/format"
 
 interface KegFormState {
   physicalLabel: string
@@ -29,6 +29,7 @@ const EMPTY_FORM: KegFormState = { physicalLabel: "", capacityL: "20", location:
 
 export function BarrilesPage() {
   const kegs = useKegs() ?? []
+  const batches = useBatches() ?? []
   const { toast } = useToast()
 
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -37,6 +38,9 @@ export function BarrilesPage() {
   const [statusDialogKeg, setStatusDialogKeg] = useState<Keg | null>(null)
   const [locationDialogKeg, setLocationDialogKeg] = useState<Keg | null>(null)
   const [locationInput, setLocationInput] = useState("")
+  const [fillDialogKeg, setFillDialogKeg] = useState<Keg | null>(null)
+  const [fillBatchId, setFillBatchId] = useState("")
+  const [historyDialogKeg, setHistoryDialogKeg] = useState<Keg | null>(null)
 
   const counts = KEG_STATUS_ORDER.map((s) => ({ status: s, count: kegs.filter((k) => k.status === s).length }))
 
@@ -58,12 +62,36 @@ export function BarrilesPage() {
   const advance = async (keg: Keg) => {
     const next = KEG_NEXT_STATUS[keg.status]
     if (!next) return
+    if (next === "lleno") {
+      setFillDialogKeg(keg)
+      setFillBatchId("")
+      return
+    }
     await kegRepo.setStatus(keg.id, next)
   }
 
   const setStatus = async (keg: Keg, status: KegStatus) => {
+    if (status === "lleno") {
+      setStatusDialogKeg(null)
+      setFillDialogKeg(keg)
+      setFillBatchId("")
+      return
+    }
     await kegRepo.setStatus(keg.id, status)
     setStatusDialogKeg(null)
+  }
+
+  const confirmFill = async () => {
+    if (!fillDialogKeg) return
+    const batch = batches.find((b) => b.id === fillBatchId)
+    await kegRepo.setStatus(fillDialogKeg.id, "lleno", {
+      batchId: batch?.id,
+      batchCode: batch?.code,
+      filledDate: todayIso(),
+      remainingL: fillDialogKeg.capacityL,
+    })
+    toast({ title: "Barril lleno", variant: "success" })
+    setFillDialogKeg(null)
   }
 
   const saveLocation = async () => {
@@ -149,6 +177,9 @@ export function BarrilesPage() {
                             {KEG_STATUS_LABELS[KEG_NEXT_STATUS[k.status]!]} <ArrowRight className="h-3.5 w-3.5" />
                           </Button>
                         )}
+                        <Button size="sm" variant="secondary" onClick={() => setHistoryDialogKeg(k)} title="Historial">
+                          <History className="h-4 w-4" />
+                        </Button>
                         <Button size="sm" variant="secondary" onClick={() => setStatusDialogKeg(k)}>
                           <Settings2 className="h-4 w-4" />
                         </Button>
@@ -218,6 +249,47 @@ export function BarrilesPage() {
           <DialogFooter>
             <Button onClick={saveLocation}>Guardar</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!fillDialogKeg} onOpenChange={(o) => !o && setFillDialogKeg(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>¿Qué lote entra en {fillDialogKeg?.physicalLabel}?</DialogTitle>
+          </DialogHeader>
+          <FormField label="Lote" hint="Queda guardado en el historial del barril.">
+            <Select value={fillBatchId} onChange={(e) => setFillBatchId(e.target.value)}>
+              <option value="">— sin especificar —</option>
+              {batches.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.code} — {b.recipeName}
+                </option>
+              ))}
+            </Select>
+          </FormField>
+          <DialogFooter>
+            <Button onClick={confirmFill}>Marcar como lleno</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!historyDialogKeg} onOpenChange={(o) => !o && setHistoryDialogKeg(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Historial — {historyDialogKeg?.physicalLabel}</DialogTitle>
+          </DialogHeader>
+          {!historyDialogKeg?.history || historyDialogKeg.history.length === 0 ? (
+            <p className="text-sm text-[var(--color-text-faint)]">Todavía no pasó ningún lote registrado por este barril.</p>
+          ) : (
+            <div className="space-y-2">
+              {historyDialogKeg.history.map((h) => (
+                <div key={h.id} className="flex items-center justify-between rounded-[var(--radius-sm)] bg-[var(--color-bg-elevated)] px-3 py-2 text-sm">
+                  <span className="text-[var(--color-text)]">{h.batchCode || "Lote sin especificar"}</span>
+                  <span className="text-xs text-[var(--color-text-faint)]">{formatDate(h.filledDate)}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

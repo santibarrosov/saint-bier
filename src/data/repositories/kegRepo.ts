@@ -2,7 +2,7 @@ import { db } from "../db"
 import type { Keg, KegStatus } from "../types"
 import { newId, nowIso } from "@/lib/id"
 
-export type KegInput = Omit<Keg, "id" | "createdAt" | "updatedAt">
+export type KegInput = Omit<Keg, "id" | "createdAt" | "updatedAt" | "history">
 
 export const kegRepo = {
   async list(): Promise<Keg[]> {
@@ -15,7 +15,7 @@ export const kegRepo = {
 
   async create(input: KegInput): Promise<Keg> {
     const now = nowIso()
-    const keg: Keg = { ...input, id: newId(), createdAt: now, updatedAt: now }
+    const keg: Keg = { ...input, id: newId(), createdAt: now, updatedAt: now, history: [] }
     await db.kegs.add(keg)
     return keg
   },
@@ -28,22 +28,43 @@ export const kegRepo = {
     await db.kegs.delete(id)
   },
 
-  /** Cambia el estado y, opcionalmente, la ubicación (registrando desde cuándo). */
+  /**
+   * Cambia el estado y, opcionalmente, la ubicación (registrando desde cuándo). Cuando se
+   * asocia un lote nuevo (típicamente al pasar a "lleno"), agrega una entrada al historial
+   * del barril — para eso lee el estado fresco dentro de una transacción, no un valor de
+   * closure, así dos escrituras casi simultáneas no se pisan (mismo patrón que brewSession).
+   */
   async setStatus(
     id: string,
     status: KegStatus,
     opts?: { location?: string; batchId?: string; batchCode?: string; filledDate?: string; remainingL?: number },
   ): Promise<void> {
-    const patch: Partial<Keg> = { status, updatedAt: nowIso() }
-    if (opts?.location) {
-      patch.location = opts.location
-      patch.locationSince = nowIso()
-    }
-    if (opts?.batchId !== undefined) patch.currentBatchId = opts.batchId
-    if (opts?.batchCode !== undefined) patch.currentBatchCode = opts.batchCode
-    if (opts?.filledDate !== undefined) patch.filledDate = opts.filledDate
-    if (opts?.remainingL !== undefined) patch.estimatedRemainingL = opts.remainingL
-    await db.kegs.update(id, patch)
+    await db.transaction("rw", db.kegs, async () => {
+      const keg = await db.kegs.get(id)
+      if (!keg) return
+
+      const patch: Partial<Keg> = { status, updatedAt: nowIso() }
+      if (opts?.location) {
+        patch.location = opts.location
+        patch.locationSince = nowIso()
+      }
+      if (opts?.batchId !== undefined) patch.currentBatchId = opts.batchId
+      if (opts?.batchCode !== undefined) patch.currentBatchCode = opts.batchCode
+      if (opts?.filledDate !== undefined) patch.filledDate = opts.filledDate
+      if (opts?.remainingL !== undefined) patch.estimatedRemainingL = opts.remainingL
+
+      if (opts?.batchId && opts.batchId !== keg.currentBatchId) {
+        const entry = {
+          id: newId(),
+          batchId: opts.batchId,
+          batchCode: opts.batchCode ?? "",
+          filledDate: opts.filledDate ?? nowIso(),
+        }
+        patch.history = [entry, ...(keg.history ?? [])]
+      }
+
+      await db.kegs.update(id, patch)
+    })
   },
 
   async moveLocation(id: string, location: string): Promise<void> {

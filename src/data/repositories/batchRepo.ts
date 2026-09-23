@@ -43,7 +43,7 @@ export const batchRepo = {
     await db.batches.delete(id)
   },
 
-  async addFermentationLog(id: string, entry: { date: string; tempC: number; note?: string }): Promise<void> {
+  async addFermentationLog(id: string, entry: { date: string; tempC: number; gravity?: number; note?: string }): Promise<void> {
     await db.transaction("rw", db.batches, async () => {
       const batch = await db.batches.get(id)
       if (!batch) return
