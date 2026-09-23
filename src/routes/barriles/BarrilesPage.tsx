@@ -14,13 +14,13 @@ import { useToast } from "@/components/ui/toast"
 
 import { useKegs } from "@/data/hooks"
 import { kegRepo } from "@/data/repositories/kegRepo"
-import { KEG_STATUS_ORDER, type Keg, type KegStatus } from "@/data/types"
+import { KEG_CAPACITY_OPTIONS_L, KEG_STATUS_ORDER, type Keg, type KegCapacityL, type KegStatus } from "@/data/types"
 import { KEG_NEXT_STATUS, KEG_STATUS_LABELS } from "@/lib/constants"
 import { formatDateShort } from "@/lib/format"
 
 interface KegFormState {
   physicalLabel: string
-  capacityL: "20" | "70"
+  capacityL: string
   location: string
   notes: string
 }
@@ -44,7 +44,7 @@ export function BarrilesPage() {
     if (!form.physicalLabel) return
     await kegRepo.create({
       physicalLabel: form.physicalLabel,
-      capacityL: Number(form.capacityL) as 20 | 70,
+      capacityL: Number(form.capacityL) as KegCapacityL,
       status: "vacio_sucio",
       location: form.location,
       locationSince: new Date().toISOString(),
@@ -173,9 +173,12 @@ export function BarrilesPage() {
             </FormField>
             <div className="grid grid-cols-2 gap-3">
               <FormField label="Capacidad">
-                <Select value={form.capacityL} onChange={(e) => setForm((f) => ({ ...f, capacityL: e.target.value as "20" | "70" }))}>
-                  <option value="20">20 L</option>
-                  <option value="70">70 L</option>
+                <Select value={form.capacityL} onChange={(e) => setForm((f) => ({ ...f, capacityL: e.target.value }))}>
+                  {KEG_CAPACITY_OPTIONS_L.map((l) => (
+                    <option key={l} value={l}>
+                      {l} L
+                    </option>
+                  ))}
                 </Select>
               </FormField>
               <FormField label="Ubicación">

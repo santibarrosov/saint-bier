@@ -289,9 +289,12 @@ export interface KegLocationEntry {
   since: string // ISO
 }
 
+export const KEG_CAPACITY_OPTIONS_L = [5, 10, 20, 30, 50, 70] as const
+export type KegCapacityL = (typeof KEG_CAPACITY_OPTIONS_L)[number]
+
 export interface Keg extends BaseEntity {
   physicalLabel: string
-  capacityL: 20 | 70
+  capacityL: KegCapacityL
   status: KegStatus
   currentBatchId?: Id
   currentBatchCode?: string

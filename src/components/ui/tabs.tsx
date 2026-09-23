@@ -22,9 +22,12 @@ TabsList.displayName = TabsPrimitive.List.displayName
 const TabsTrigger = React.forwardRef<
   React.ComponentRef<typeof TabsPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
->(({ className, ...props }, ref) => (
+>(({ className, type = "button", ...props }, ref) => (
+  // Radix no pone type="button" por su cuenta — sin esto, un Trigger dentro de un <form>
+  // hereda el default nativo type="submit" y cada click en una pestaña dispara el submit.
   <TabsPrimitive.Trigger
     ref={ref}
+    type={type}
     className={cn(
       "inline-flex h-9 flex-1 items-center justify-center whitespace-nowrap rounded-[var(--radius-sm)] px-3.5 text-sm font-medium text-[var(--color-text-muted)] transition-colors",
       "data-[state=active]:bg-[var(--color-primary)] data-[state=active]:text-[var(--color-text-on-primary)]",

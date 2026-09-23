@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import { useLiveQuery } from "dexie-react-hooks"
-import { Pencil, Plus, Sparkles, Trash2, Users, Wand2 } from "lucide-react"
+import { Copy, Pencil, Plus, Sparkles, Trash2, Users, Wand2 } from "lucide-react"
 
 import { PageHeader } from "@/components/layout/PageHeader"
 import { SectionCard } from "@/components/shared/SectionCard"
@@ -17,7 +17,7 @@ import { db } from "@/data/db"
 import { useEvent, useKegs, useSettings } from "@/data/hooks"
 import { eventRepo } from "@/data/repositories/eventRepo"
 import { kegRepo } from "@/data/repositories/kegRepo"
-import { calcEstimatedConsumption, suggestKegsForLiters } from "@/lib/eventCalc"
+import { buildBudgetMessage, calcEstimatedConsumption, suggestKegsForLiters } from "@/lib/eventCalc"
 import { calcBatchCost, calcMarginPct } from "@/lib/costCalc"
 import { formatCurrency, formatLiters, formatPercent } from "@/lib/format"
 
@@ -100,6 +100,16 @@ export function EventoDetail() {
     await eventRepo.update(event.id, { notes })
   }
 
+  const copyBudget = async () => {
+    const text = buildBudgetMessage(event, estimatedLiters)
+    try {
+      await navigator.clipboard.writeText(text)
+      toast({ title: "Presupuesto copiado", description: "Pegalo directo en WhatsApp", variant: "success" })
+    } catch {
+      toast({ title: "No se pudo copiar", description: "Copialo a mano desde acá", variant: "warning" })
+    }
+  }
+
   const balance = event.budget - event.deposit
   const margin = costData != null ? calcMarginPct(event.budget, costData) : null
 
@@ -172,7 +182,14 @@ export function EventoDetail() {
         )}
       </SectionCard>
 
-      <SectionCard title="Presupuesto y cobro">
+      <SectionCard
+        title="Presupuesto y cobro"
+        actions={
+          <Button size="sm" variant="secondary" onClick={copyBudget}>
+            <Copy className="h-4 w-4" /> Copiar
+          </Button>
+        }
+      >
         <div className="grid grid-cols-3 gap-2 text-center">
           <StatBox label="Presupuesto" value={formatCurrency(event.budget)} />
           <StatBox label="Seña" value={formatCurrency(event.deposit)} />
@@ -183,6 +200,9 @@ export function EventoDetail() {
             Margen estimado: <span className="font-medium text-[var(--color-text)]">{formatPercent(margin, 0)}</span>
           </p>
         )}
+        <p className="text-center text-xs text-[var(--color-text-faint)]">
+          "Copiar" arma el presupuesto en texto para pegar directo en WhatsApp.
+        </p>
       </SectionCard>
 
       <SectionCard title="Checklist del día">
