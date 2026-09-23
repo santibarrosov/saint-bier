@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react"
 import {
   Barrel,
+  BarChart3,
   Beer,
   Coins,
   CalendarClock,
@@ -29,6 +30,7 @@ export const NAV_ITEMS: NavItem[] = [
   { to: "/levaduras", label: "Levaduras", icon: Microscope },
   { to: "/inventario", label: "Inventario", icon: Warehouse },
   { to: "/costos", label: "Costos", icon: Coins },
+  { to: "/estadisticas", label: "Estadísticas", icon: BarChart3 },
   { to: "/planificador", label: "Planificador", icon: CalendarClock },
   { to: "/ajustes", label: "Ajustes", icon: Settings },
 ]

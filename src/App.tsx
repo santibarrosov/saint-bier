@@ -19,6 +19,7 @@ const EventosList = lazy(() => import("@/routes/eventos/EventosList").then((m) =
 const EventoDetail = lazy(() => import("@/routes/eventos/EventoDetail").then((m) => ({ default: m.EventoDetail })))
 const EventoForm = lazy(() => import("@/routes/eventos/EventoForm").then((m) => ({ default: m.EventoForm })))
 const CostosPage = lazy(() => import("@/routes/costos/CostosPage").then((m) => ({ default: m.CostosPage })))
+const EstadisticasPage = lazy(() => import("@/routes/estadisticas/EstadisticasPage").then((m) => ({ default: m.EstadisticasPage })))
 const PlanificadorPage = lazy(() => import("@/routes/planificador/PlanificadorPage").then((m) => ({ default: m.PlanificadorPage })))
 const AjustesPage = lazy(() => import("@/routes/ajustes/AjustesPage").then((m) => ({ default: m.AjustesPage })))
 
@@ -62,6 +63,7 @@ export default function App() {
               <Route path="eventos/:id/editar" element={<EventoForm />} />
 
               <Route path="costos" element={<CostosPage />} />
+              <Route path="estadisticas" element={<EstadisticasPage />} />
               <Route path="planificador" element={<PlanificadorPage />} />
               <Route path="ajustes" element={<AjustesPage />} />
             </Route>
